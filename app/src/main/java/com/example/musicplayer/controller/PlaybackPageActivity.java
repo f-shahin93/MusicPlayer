@@ -1,14 +1,14 @@
 package com.example.musicplayer.controller;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.content.ContextCompat;
-
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -18,9 +18,10 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PersistableBundle;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +44,7 @@ public class PlaybackPageActivity extends AppCompatActivity {
     public static final String EXTRA_MUSIC = "Extra music";
     public static final String EXTRA_PLAYLIST = "Extra playlist";
     private static final String SONG_ID_ARG = "song_id_arg";
+    public static final String BUNDLE_MEDIA = "Bundle_Media";
     private CircleImageView mImageVBackMusic;
     private AppCompatImageButton mButtonPrevious, mButtonNext, mButtonPlay, mButtonRepeat, mButtonShuffle;
     private SeekBar mSeekBar;
@@ -54,12 +56,14 @@ public class PlaybackPageActivity extends AppCompatActivity {
     private boolean flagPlay = false;
     private TextView mTextVTimeMusic;
     private ConstraintLayout mConstraintLayout;
+    private LinearLayout mLinearLayout;
     private Handler mHandler;
     private int mMusicPosition;
     private MyMediaPlayer mMyMediaPlayer;
     int currentSongIndex = 0;
     boolean isShuffle = false;
     boolean isRepeat = false;
+    int orientation;
 
     private boolean mRepeateSong = false;
     private static boolean mShuffle = false;
@@ -82,14 +86,21 @@ public class PlaybackPageActivity extends AppCompatActivity {
         mTextMusicName = findViewById(R.id.TvmusicName);
         mTextArtistName = findViewById(R.id.TvArtistName);
         mConstraintLayout = findViewById(R.id.play_music_layout);
+        mLinearLayout = findViewById(R.id.play_music_Linearlayout);
 
         mMyMediaPlayer = MyMediaPlayer.getInstance(getApplicationContext());
+
+
         mMusic = (Music) getIntent().getSerializableExtra(EXTRA_MUSIC);
         mPlayList = (List) getIntent().getSerializableExtra(EXTRA_PLAYLIST);
 
         initUI();
         playMusic();
         mMediaPlayer = mMyMediaPlayer.getMediaPlayer();
+        if(savedInstanceState != null){
+            mMyMediaPlayer.getMediaPlayer().seekTo(savedInstanceState.getInt(BUNDLE_MEDIA));
+        }
+
         //mButtonRepeat.setBackgroundResource(R.drawable.ic_repeat);
         //  mMediaPlayer = new MediaPlayer();
 
@@ -535,6 +546,8 @@ public class PlaybackPageActivity extends AppCompatActivity {
 
     public void initUI() {
 
+       orientation = getResources().getConfiguration().orientation;
+
         Picasso.get()
                 .load(Uri.parse("file://" + mMusic.getPicMusic()))
                 .transform(new BlurTransformation(getApplicationContext(), 10, 8))
@@ -542,7 +555,12 @@ public class PlaybackPageActivity extends AppCompatActivity {
                     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
                     @Override
                     public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                        mConstraintLayout.setBackground(new BitmapDrawable(bitmap));
+                            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                                mLinearLayout.setBackground(new BitmapDrawable(bitmap));
+                            } else if (orientation == Configuration.ORIENTATION_PORTRAIT)
+                                mConstraintLayout.setBackground(new BitmapDrawable(bitmap));
+
+                       // mConstraintLayout.setBackground(new BitmapDrawable(bitmap));
                     }
 
                     @Override
@@ -571,5 +589,10 @@ public class PlaybackPageActivity extends AppCompatActivity {
         return -1;
     }
 
-
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        outPersistentState.putInt(BUNDLE_MEDIA,mMyMediaPlayer.getMediaPlayer().getCurrentPosition());
+    }
 }
